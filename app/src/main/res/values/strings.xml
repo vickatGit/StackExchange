@@ -1,0 +1,4 @@
+<resources>
+    <string name="app_name">MathonGo</string>
+    <string name="network_base_url">https://api.stackexchange.com/2.3/</string>
+</resources>
