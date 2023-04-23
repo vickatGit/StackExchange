@@ -1,5 +1,6 @@
 package com.example.mathongo.data.repository
 
+import android.util.Log
 import androidx.lifecycle.LiveData
 import androidx.lifecycle.MutableLiveData
 import androidx.paging.Pager
@@ -9,33 +10,28 @@ import com.example.mathongo.data.model.QuestionListModel.QuestionListModel
 import com.example.mathongo.data.remote.ApiInterface
 import com.example.mathongo.data.remote.QuestionsRemoteMediator
 import com.example.mathongo.domain.repository.Repo
+import com.google.gson.Gson
 import retrofit2.Call
 import retrofit2.Callback
 import retrofit2.Response
+import javax.inject.Inject
 
-class RepoImpl(val api: ApiInterface) : Repo {
-    private val questionLiveData= MutableLiveData<List<Question?>?>()
-    fun  getQuestionsData():LiveData<List<Question?>?> =  questionLiveData
-
+class RepoImpl @Inject constructor(val api: ApiInterface) : Repo {
 
 
+    override suspend fun getQuestions(pageNumber: Int): QuestionListModel {
+         return api.getQuestions(pageNum = pageNumber)
+    }
 
-    override suspend fun getQuestions(){
-
-//        api.getQuestions(0, 10).enqueue(object : Callback<QuestionListModel> {
-//            override fun onResponse(
-//                call: Call<QuestionListModel>,
-//                response: Response<QuestionListModel>
-//            ) {
-//               response.body()?.let {
-//                   questionLiveData.postValue(it.items)
-//               }
-//            }
-//
-//            override fun onFailure(call: Call<QuestionListModel>, t: Throwable) {
-//               questionLiveData.postValue(null)
-//            }
-//
-//        })
+    override suspend fun getQuestionByQuery(
+        pageNumber: Int,
+        questionQuery: String,
+        tag: String
+    ): QuestionListModel {
+        return api.getQuestionByQuery(
+            pageNum = pageNumber,
+            title = questionQuery,
+            tagged = tag
+        )
     }
 }

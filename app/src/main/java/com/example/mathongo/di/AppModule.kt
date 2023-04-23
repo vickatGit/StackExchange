@@ -12,6 +12,10 @@ import com.example.mathongo.data.remote.ApiInterface
 import com.example.mathongo.data.remote.QuestionsRemoteMediator
 import com.example.mathongo.data.repository.RepoImpl
 import com.example.mathongo.data.room.StackDatabase
+import com.example.mathongo.domain.repository.Repo
+import com.example.mathongo.domain.usecases.GetQuestionByQueryUseCase
+import com.example.mathongo.domain.usecases.GetQuestionUseCase
+import com.readystatesoftware.chuck.ChuckInterceptor
 import dagger.Module
 import dagger.Provides
 import dagger.hilt.InstallIn
@@ -31,7 +35,7 @@ class AppModule {
 
     @Provides
     @Singleton
-    fun provideCache(context : Application): Cache {
+    fun provideCache(context: Application): Cache {
         val cacheDirectory = File(context.getCacheDir(), "responses")
         val cacheSize = 10 * 1024 * 1024 //----- 10 MB------
         val cache = Cache(cacheDirectory, cacheSize.toLong())
@@ -40,50 +44,77 @@ class AppModule {
 
     @Provides
     @Singleton
-    fun provideHttpClient(cache:Cache):OkHttpClient{
+    fun provideHttpClient(@ApplicationContext app: Context,cache: Cache): OkHttpClient {
         return OkHttpClient.Builder()
-            .cache(cache)
+            .addInterceptor(ChuckInterceptor(app))
             .build()
     }
 
     @Provides
     @Singleton
-    fun provideRetrofit(client : OkHttpClient): ApiInterface {
+    fun provideRetrofit(client: OkHttpClient): ApiInterface {
         return Retrofit.Builder()
             .baseUrl("https://api.stackexchange.com/2.3/")
-            .addConverterFactory( GsonConverterFactory.create())
+            .addConverterFactory(GsonConverterFactory.create())
+            .client(client)
             .build()
             .create(ApiInterface::class.java)
     }
 
     @Provides
     @Singleton
-    fun provideRepo(api : ApiInterface): RepoImpl {
+    fun provideRepo(api: ApiInterface): Repo {
         return RepoImpl(api)
     }
 
     @Provides
     @Singleton
-    fun provideStackDatabase(@ApplicationContext app : Context): StackDatabase{
-        return Room.databaseBuilder(app,StackDatabase::class.java,"StackDatabase.db").fallbackToDestructiveMigration().build()
+    fun provideStackDatabase(@ApplicationContext app: Context): StackDatabase {
+        return Room.databaseBuilder(app, StackDatabase::class.java, "StackDatabase.db")
+            .fallbackToDestructiveMigration().build()
     }
+
     @Provides
     @Singleton
     fun provideSharedPreferences(@ApplicationContext context: Context): SharedPreferences {
         return context.getSharedPreferences("MyPrefs", Context.MODE_PRIVATE)
     }
+
     @Provides
-    @Singleton
-    fun provideQuestionPager(db:StackDatabase,api:ApiInterface,preferences: SharedPreferences): LiveData<PagingData<Question>> {
+    fun provideQuestionPager(
+        db: StackDatabase,
+        questionsRemoteMediator: QuestionsRemoteMediator
+    ): LiveData<PagingData<Question>> {
         return Pager(
             PagingConfig(pageSize = 10),
-            remoteMediator = QuestionsRemoteMediator(db,api,preferences),
+            remoteMediator = questionsRemoteMediator,
             pagingSourceFactory = {
                 db.dbDao.pagingSource()
             }
         ).liveData
     }
 
+    @Provides
+    @Singleton
+    fun getQuestionsUseCase(repo:Repo): GetQuestionUseCase {
+        return GetQuestionUseCase(repo)
+    }
+
+    @Provides
+    @Singleton
+    fun provideQuestionByQueryUseCase(repo:Repo): GetQuestionByQueryUseCase {
+        return GetQuestionByQueryUseCase(repo)
+    }
+
+    @Provides
+    fun provideQuestionRemoteMediator(
+        db: StackDatabase,
+        preferences: SharedPreferences,
+        getQuestionUseCase: GetQuestionUseCase,
+        getQuestionByQueryUseCase: GetQuestionByQueryUseCase
+    ): QuestionsRemoteMediator {
+        return QuestionsRemoteMediator(db,getQuestionUseCase, preferences,getQuestionByQueryUseCase)
+    }
 
 
 }

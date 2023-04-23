@@ -1,42 +1,43 @@
 package com.example.mathongo.data.model.QuestionListModel
 
-import androidx.room.Entity
-import androidx.room.PrimaryKey
+import androidx.room.*
+import com.google.gson.annotations.SerializedName
 
 data class QuestionListModel(
 	val quotaMax: Int,
 	val quotaRemaining: Int,
-	val hasMore: Boolean,
+	@SerializedName("has_more") val hasMore: Boolean,
 	val items: List<Question>
 )
 
 @Entity
 data class Question(
 	@PrimaryKey(autoGenerate = false)
-	val questionId: Int?,
-//	val owner: Owner,
-	val contentLicense: String?,
+	@SerializedName("question_id")val questionId: Int?,
+	@Embedded val owner: Owner?,
+	@SerializedName("content_license")val contentLicense: String?,
 	val score: Int?,
 	val link: String?,
-	val lastActivityDate: Int?,
-	val isAnswered: Boolean?,
-	val creationDate: Int?,
-	val answerCount: Int?,
+	@SerializedName("last_activity_date") val lastActivityDate: Int?,
+	@SerializedName("is_answered") val isAnswered: Boolean?,
+	@SerializedName("creation_date") val creationDate: Int?,
+	@SerializedName("answer_count")val answerCount: Int?,
 	val title: String?,
-	val viewCount: Int?,
-//	val tags: List<String>,
-	val acceptedAnswerId: Int?,
-	val lastEditDate: Int?
+	@SerializedName("view_count") val viewCount: Int?,
+	@TypeConverters(TypeConverter::class) val tags: List<String?>?,
+	@SerializedName("accepted_answer_id") val acceptedAnswerId: Int?,
+	@SerializedName("last_edit_date") val lastEditDate: Int?
 )
 
-//data class Owner(
-//	val profileImage: String,
-//	val accountId: Int,
-//	val userType: String,
-//	val userId: Int,
-//	val link: String,
-//	val reputation: Int,
-//	val displayName: String,
-//	val acceptRate: Int
-//)
+data class Owner(
+
+	@SerializedName("profile_image")val profileImage: String?,
+	@SerializedName("account_id") val accountId: Int?,
+	@SerializedName("user_type") val userType: String?,
+	@SerializedName("user_id") val userId: Int?,
+	@SerializedName("_link") val ownerLink: String?,
+	val reputation: Int?,
+	@SerializedName("display_name") val displayName: String?,
+	@SerializedName("accept_ratee") val acceptRate: Int?
+)
 
