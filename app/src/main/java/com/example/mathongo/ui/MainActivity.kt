@@ -1,5 +1,6 @@
 package com.example.mathongo.ui
 
+import android.content.Intent
 import androidx.appcompat.app.AppCompatActivity
 import android.os.Bundle
 import android.util.Log
@@ -10,6 +11,7 @@ import android.widget.Button
 import android.widget.EditText
 import android.widget.ImageView
 import android.widget.LinearLayout
+import android.widget.ProgressBar
 import androidx.appcompat.widget.Toolbar
 import androidx.core.view.isVisible
 
@@ -18,6 +20,10 @@ import androidx.recyclerview.widget.LinearLayoutManager
 import androidx.recyclerview.widget.RecyclerView
 import androidx.swiperefreshlayout.widget.SwipeRefreshLayout
 import com.example.mathongo.R
+import com.example.mathongo.ui.adapters.PagingAdapter
+import com.example.mathongo.ui.adapters.PagingLoaderAdapter
+import com.example.mathongo.ui.Callbacks.QuestionClick
+import com.google.android.gms.ads.MobileAds
 import dagger.hilt.android.AndroidEntryPoint
 
 @AndroidEntryPoint
@@ -34,23 +40,41 @@ class MainActivity : AppCompatActivity() {
     private lateinit var toolbar: Toolbar
     private lateinit var inputContainer:LinearLayout
     private lateinit var searchIcon:ImageView
+    private lateinit var progress:ProgressBar
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
+        MobileAds.initialize(this)
         setContentView(R.layout.activity_main)
         initialiseViews()
         toolbar.title=""
         setSupportActionBar(toolbar)
 
         viewmodel = ViewModelProvider(this).get(Viewmodel::class.java)
-        val adapter = PagingAdapter()
+        val adapter = PagingAdapter(object : QuestionClick{
+            override fun onClick(url: String) {
+                val intent=Intent(this@MainActivity,WebQuestionActivity::class.java)
+                intent.putExtra(WebQuestionActivity.URL_TAG,url)
+                startActivity(intent)
+            }
+
+        })
+        adapter.registerAdapterDataObserver(object : RecyclerView.AdapterDataObserver() {
+            override fun onItemRangeInserted(positionStart: Int, itemCount: Int) {
+                super.onItemRangeInserted(positionStart, itemCount)
+                if (positionStart == 0) {
+                    swipeRefresh.isRefreshing = false
+                    questionRecycler.smoothScrollToPosition(0)
+                }
+
+            }
+
+        })
         questionRecycler.setHasFixedSize(true)
         questionRecycler.layoutManager = LinearLayoutManager(this)
         questionRecycler.adapter = adapter.withLoadStateFooter( footer = PagingLoaderAdapter() )
 
         viewmodel.flow.observe(this) {
             adapter.submitData(lifecycle, it)
-            Log.e("TAG", "onCreate: can observe")
-            swipeRefresh.isRefreshing = false
         }
         searchIcon.setOnClickListener {
             Log.e("TAG", "onCreate: search icon clicked", )
@@ -63,7 +87,6 @@ class MainActivity : AppCompatActivity() {
 
         swipeRefresh.setOnRefreshListener {
             adapter.refresh()
-            questionRecycler.smoothScrollToPosition(0)
         }
         search.setOnClickListener {
             if(!questionSearch.text.isEmpty()) {
@@ -111,6 +134,8 @@ class MainActivity : AppCompatActivity() {
 
             override fun onAnimationRepeat(animation: Animation?) {}
         })
+
+
     }
 
     private fun initialiseViews() {
@@ -122,6 +147,8 @@ class MainActivity : AppCompatActivity() {
         toolbar=findViewById(R.id.toolbar)
         inputContainer=findViewById(R.id.input_container)
         searchIcon=toolbar.findViewById(R.id.search_icon)
+
+        progress=findViewById(R.id.progress)
 
     }
 }

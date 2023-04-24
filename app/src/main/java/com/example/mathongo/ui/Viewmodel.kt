@@ -22,7 +22,7 @@ class Viewmodel @Inject constructor(
     val preferences: SharedPreferences,
     val getQuestionUseCase: GetQuestionUseCase,
     val getQuestionByQueryUseCase: GetQuestionByQueryUseCase,
-    var pager: LiveData<PagingData<Question>>
+    val pager: LiveData<PagingData<Question>>
 ) : ViewModel() {
 
     var flow = pager

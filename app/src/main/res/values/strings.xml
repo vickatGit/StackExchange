@@ -1,4 +1,5 @@
 <resources>
     <string name="app_name">MathonGo</string>
     <string name="network_base_url">https://api.stackexchange.com/2.3/</string>
+    <string name="add_manager_app_id">ca-app-pub-3940256099942544~3347511713</string>
 </resources>

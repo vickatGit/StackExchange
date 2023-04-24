@@ -1,4 +1,4 @@
-package com.example.mathongo.ui
+package com.example.mathongo.ui.adapters
 
 import android.view.LayoutInflater
 import android.view.View
