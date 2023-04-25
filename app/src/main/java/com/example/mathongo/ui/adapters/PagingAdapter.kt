@@ -49,7 +49,7 @@ class PagingAdapter(val questionClick: QuestionClick) :
             val view =LayoutInflater.from(parent.context).inflate(R.layout.question_holder, parent, false)
             QuestionHolder(view)
         } else {
-            val view = LayoutInflater.from(parent.context).inflate(R.layout.ad_holder, parent, false)
+            val view = LayoutInflater.from(parent.context).inflate(R.layout.ad_layout, parent, false)
             AdHolder(view)
         }
     }
@@ -90,7 +90,7 @@ class PagingAdapter(val questionClick: QuestionClick) :
                 holder.answerCount.text = question?.answerCount.toString()
                 holder.itemView.setOnClickListener {
                     question?.link?.let {
-                        questionClick.onClick(it)
+                        questionClick.questionClick(it)
                     }
                 }
             }

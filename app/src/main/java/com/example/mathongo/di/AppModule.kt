@@ -56,7 +56,7 @@ class AppModule {
         return Retrofit.Builder()
             .baseUrl("https://api.stackexchange.com/2.3/")
             .addConverterFactory(GsonConverterFactory.create())
-            .client(client)
+//            .client(client)
             .build()
             .create(ApiInterface::class.java)
     }

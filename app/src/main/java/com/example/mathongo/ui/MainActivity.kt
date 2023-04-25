@@ -1,6 +1,9 @@
 package com.example.mathongo.ui
 
+import android.content.Context
 import android.content.Intent
+import android.net.ConnectivityManager
+import android.net.NetworkCapabilities
 import androidx.appcompat.app.AppCompatActivity
 import android.os.Bundle
 import android.util.Log
@@ -12,10 +15,12 @@ import android.widget.EditText
 import android.widget.ImageView
 import android.widget.LinearLayout
 import android.widget.ProgressBar
+import android.widget.Toast
 import androidx.appcompat.widget.Toolbar
 import androidx.core.view.isVisible
 
 import androidx.lifecycle.ViewModelProvider
+import androidx.paging.LoadState
 import androidx.recyclerview.widget.LinearLayoutManager
 import androidx.recyclerview.widget.RecyclerView
 import androidx.swiperefreshlayout.widget.SwipeRefreshLayout
@@ -48,21 +53,40 @@ class MainActivity : AppCompatActivity() {
         initialiseViews()
         toolbar.title=""
         setSupportActionBar(toolbar)
-
+        handleNetworkOnStart()
         viewmodel = ViewModelProvider(this).get(Viewmodel::class.java)
-        val adapter = PagingAdapter(object : QuestionClick{
-            override fun onClick(url: String) {
+        val adapter = PagingAdapter(object : QuestionClick {
+
+            override fun questionClick(url: String) {
                 val intent=Intent(this@MainActivity,WebQuestionActivity::class.java)
                 intent.putExtra(WebQuestionActivity.URL_TAG,url)
                 startActivity(intent)
             }
 
         })
+        adapter.addLoadStateListener { loadState ->
+            when (loadState.refresh) {
+                is LoadState.NotLoading -> {
+                    swipeRefresh.isRefreshing=false
+                    hideProgress()
+                    questionRecycler.smoothScrollToPosition(0)
+
+                }
+                is LoadState.Error -> {
+                    swipeRefresh.isRefreshing=false
+                    hideProgress()
+                    Toast.makeText(this,"some Error Occurred while loading the data",Toast.LENGTH_SHORT).show()
+                }
+                else -> {
+                    showProgress()
+                }
+            }
+        }
         adapter.registerAdapterDataObserver(object : RecyclerView.AdapterDataObserver() {
             override fun onItemRangeInserted(positionStart: Int, itemCount: Int) {
                 super.onItemRangeInserted(positionStart, itemCount)
                 if (positionStart == 0) {
-                    swipeRefresh.isRefreshing = false
+//                    swipeRefresh.isRefreshing = false
                     questionRecycler.smoothScrollToPosition(0)
                 }
 
@@ -75,6 +99,8 @@ class MainActivity : AppCompatActivity() {
 
         viewmodel.flow.observe(this) {
             adapter.submitData(lifecycle, it)
+//            swipeRefresh.isRefreshing = false
+
         }
         searchIcon.setOnClickListener {
             Log.e("TAG", "onCreate: search icon clicked", )
@@ -86,7 +112,13 @@ class MainActivity : AppCompatActivity() {
         }
 
         swipeRefresh.setOnRefreshListener {
-            adapter.refresh()
+            if(isConnectedToNetwork()) {
+                adapter.refresh()
+            }
+            else {
+                swipeRefresh.isRefreshing = false
+                Toast.makeText(this, "Network is Not Enabled ", Toast.LENGTH_SHORT).show()
+            }
         }
         search.setOnClickListener {
             if(!questionSearch.text.isEmpty()) {
@@ -97,12 +129,17 @@ class MainActivity : AppCompatActivity() {
                     Log.e("TAG", "onCreate: in search",)
                     adapter.submitData(lifecycle, it)
                     Log.e("TAG", "onCreate: can observe")
-                    swipeRefresh.isRefreshing = false
+//                    swipeRefresh.isRefreshing = false
                 }
                 hideInputContainer(true)
             }
 
         }
+    }
+
+    private fun handleNetworkOnStart() {
+        if(!isConnectedToNetwork())
+            Toast.makeText(this,"Network is Not Enabled ",Toast.LENGTH_SHORT).show()
     }
 
     private fun hideInputContainer(isQueryEntered: Boolean) {
@@ -113,8 +150,8 @@ class MainActivity : AppCompatActivity() {
 
             override fun onAnimationEnd(animation: Animation?) {
                 inputContainer.isVisible=false
-                if(isQueryEntered)
-                    questionRecycler.smoothScrollToPosition(0)
+//                if(isQueryEntered)
+//                    questionRecycler.smoothScrollToPosition(0)
             }
 
             override fun onAnimationRepeat(animation: Animation?) {}
@@ -150,5 +187,18 @@ class MainActivity : AppCompatActivity() {
 
         progress=findViewById(R.id.progress)
 
+    }
+    private fun isConnectedToNetwork(): Boolean {
+        val connectivityManager =
+            this.getSystemService(Context.CONNECTIVITY_SERVICE) as ConnectivityManager
+        val network = connectivityManager.activeNetwork
+        val networkCapabilities = connectivityManager.getNetworkCapabilities(network)
+        return networkCapabilities?.hasCapability(NetworkCapabilities.NET_CAPABILITY_INTERNET) == true
+    }
+    private fun showProgress(){
+        progress.isVisible=true
+    }
+    private fun hideProgress(){
+        progress.isVisible=false
     }
 }
